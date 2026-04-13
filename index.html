@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="コスメノート">
+<meta name="theme-color" content="#faf8f5">
+<title>コスメノート</title>
+<style>
+  :root {
+    --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe6df;
+    --text: #1a1714; --text2: #6b6560; --text3: #9c9590;
+    --accent: #c4856a; --accent2: #e8c4b4;
+    --border: rgba(26,23,20,0.1); --border2: rgba(26,23,20,0.18);
+    --green-bg: #eaf3e8; --green-text: #2d6b3a;
+    --red-text: #8b2e2e; --star: #c4856a;
+    --radius: 14px; --radius-sm: 8px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1714; --bg2: #231f1b; --bg3: #2e2925;
+      --text: #f0ece6; --text2: #9c9590; --text3: #6b6560;
+      --accent: #d49880; --accent2: #4a2e20;
+      --border: rgba(240,236,230,0.1); --border2: rgba(240,236,230,0.18);
+      --green-bg: #1a3020; --green-text: #7ec48a; --red-text: #e08080;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system,'Hiragino Sans',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: calc(72px + var(--safe-bottom)); }
+  .header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between; }
+  .header-title { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .count-badge { background: var(--accent2); color: var(--accent); font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
+  .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: var(--bg); border-top: 0.5px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); }
+  .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0 8px; gap: 3px; background: none; border: none; cursor: pointer; color: var(--text3); font-size: 10px; }
+  .tab-item.active { color: var(--accent); }
+  .tab-icon { font-size: 22px; line-height: 1; }
+  .page { display: none; padding: 16px 16px 0; }
+  .page.active { display: block; }
+
+  .search-bar { position: relative; margin-bottom: 12px; }
+  .search-bar input { width: 100%; padding: 10px 16px 10px 40px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; color: var(--text); }
+  .search-bar input::placeholder { color: var(--text3); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text3); pointer-events: none; }
+  .filter-row { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip { flex-shrink: 0; padding: 5px 12px; border-radius: 99px; border: 0.5px solid var(--border2); background: var(--bg2); font-size: 12px; color: var(--text2); cursor: pointer; white-space: nowrap; }
+  .filter-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .product-card { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 10px; overflow: hidden; }
+  .card-main { display: flex; gap: 12px; padding: 14px; }
+  .card-img { width: 64px; height: 64px; border-radius: var(--radius-sm); background: var(--bg3); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; }
+  .card-info { flex: 1; min-width: 0; }
+  .card-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .card-brand { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; }
+  .tag-type { background: var(--accent2); color: var(--accent); }
+  .tag-skin { background: var(--green-bg); color: var(--green-text); }
+  .tag-cat { background: var(--bg3); color: var(--text2); }
+  .card-detail { padding: 0 14px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .detail-item.full { grid-column: 1 / -1; }
+  .detail-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .detail-val { font-size: 13px; color: var(--text); }
+  .detail-val.ng { color: var(--red-text); }
+  .card-footer { border-top: 0.5px solid var(--border); display: flex; }
+  .card-btn { flex: 1; padding: 10px; background: none; border: none; cursor: pointer; font-size: 13px; color: var(--text2); }
+  .card-btn.danger { color: var(--red-text); }
+  .card-btn + .card-btn { border-left: 0.5px solid var(--border); }
+  .stars { color: var(--star); font-size: 13px; }
+  .price-vol { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .empty { text-align: center; padding: 60px 20px; }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; color: var(--text2); margin-bottom: 20px; }
+  .btn-add-first { display: inline-block; padding: 10px 24px; background: var(--accent); color: white; border-radius: 99px; border: none; font-size: 14px; cursor: pointer; }
+
+  .form-section { margin-bottom: 20px; }
+  .form-section-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+  .form-card { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); overflow: hidden; }
+  .form-row-item { display: flex; align-items: center; padding: 12px 16px; gap: 12px; }
+  .form-row-item + .form-row-item { border-top: 0.5px solid var(--border); }
+  .form-row-label { font-size: 14px; color: var(--text); width: 88px; flex-shrink: 0; }
+  .form-row-item input, .form-row-item select, .form-row-item textarea { flex: 1; background: none; border: none; outline: none; font-size: 15px; color: var(--text); font-family: inherit; text-align: right; }
+  .form-row-item input::placeholder, .form-row-item textarea::placeholder { color: var(--text3); }
+  .form-row-item select { appearance: none; -webkit-appearance: none; }
+  .form-row-item select option { background: var(--bg2); color: var(--text); }
+  .form-textarea { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .form-textarea textarea { text-align: left; width: 100%; min-height: 72px; resize: none; }
+  .form-star-row { padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+  .form-star-row .lbl { font-size: 14px; color: var(--text); width: 88px; flex-shrink: 0; }
+  .star-btn { font-size: 26px; background: none; border: none; cursor: pointer; color: var(--border2); padding: 0 2px; }
+  .star-btn.on { color: var(--star); }
+  .img-preview-row { padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+  .img-thumb { width: 64px; height: 64px; border-radius: var(--radius-sm); object-fit: cover; background: var(--bg3); border: 0.5px solid var(--border); display: none; flex-shrink: 0; }
+  .img-thumb.show { display: block; }
+  .img-upload-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-sm); border: 1px dashed var(--border2); background: var(--bg3); cursor: pointer; gap: 4px; flex-shrink: 0; }
+  .img-upload-btn span { font-size: 22px; line-height: 1; }
+  .img-upload-btn small { font-size: 9px; color: var(--text3); }
+  .img-upload-actions { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .img-action-btn { padding: 8px 14px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2); background: var(--bg3); font-size: 13px; color: var(--text2); cursor: pointer; text-align: left; }
+  .img-clear-btn { padding: 6px 14px; border-radius: var(--radius-sm); border: none; background: none; font-size: 12px; color: var(--red-text); cursor: pointer; text-align: left; display: none; }
+  .img-clear-btn.show { display: block; }
+  .save-btn { width: 100%; margin-top: 8px; padding: 15px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 600; cursor: pointer; }
+  .clear-btn { width: 100%; margin-top: 8px; padding: 12px; background: none; color: var(--text2); border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 14px; cursor: pointer; }
+
+  /* 設定ページ */
+  .setting-section { margin-bottom: 20px; }
+  .setting-card { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); overflow: hidden; }
+  .setting-row { display: flex; flex-direction: column; padding: 14px 16px; gap: 8px; }
+  .setting-row + .setting-row { border-top: 0.5px solid var(--border); }
+  .setting-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .setting-desc { font-size: 12px; color: var(--text3); line-height: 1.6; }
+  .setting-input { width: 100%; padding: 10px 12px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; color: var(--text); font-family: inherit; }
+  .setting-btn { padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-weight: 500; }
+  .setting-btn.secondary { background: none; color: var(--text2); border: 0.5px solid var(--border2); }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--border2); }
+  .status-dot.ok { background: #4caf50; }
+  .status-dot.err { background: var(--red-text); }
+  .steps { padding-left: 16px; }
+  .steps li { font-size: 12px; color: var(--text2); margin-bottom: 6px; line-height: 1.6; }
+
+  .toast { position: fixed; bottom: calc(80px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 99px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 500; align-items: center; justify-content: center; }
+  .loading-overlay.show { display: flex; }
+  .loading-box { background: var(--bg2); border-radius: var(--radius); padding: 24px 32px; font-size: 14px; color: var(--text2); }
+  input:focus, select:focus, textarea:focus { outline: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">コスメノート</div>
+    <div class="header-sub" id="header-sub">読み込み中...</div>
+  </div>
+  <div class="count-badge" id="count-badge">0件</div>
+</div>
+
+<!-- 一覧 -->
+<div class="page active" id="page-list">
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search-input" placeholder="商品名・ブランドで検索" oninput="renderList()">
+  </div>
+  <div class="filter-row">
+    <button class="filter-chip active" data-filter="" onclick="setFilter(this)">すべて</button>
+    <button class="filter-chip" data-filter="化粧水" onclick="setFilter(this)">化粧水</button>
+    <button class="filter-chip" data-filter="美容液" onclick="setFilter(this)">美容液</button>
+    <button class="filter-chip" data-filter="クリーム" onclick="setFilter(this)">クリーム</button>
+    <button class="filter-chip" data-filter="乳液" onclick="setFilter(this)">乳液</button>
+    <button class="filter-chip" data-filter="洗顔" onclick="setFilter(this)">洗顔</button>
+    <button class="filter-chip" data-filter="日焼け止め" onclick="setFilter(this)">日焼け止め</button>
+    <button class="filter-chip" data-filter="オイル" onclick="setFilter(this)">オイル</button>
+    <button class="filter-chip" data-filter="パック/マスク" onclick="setFilter(this)">パック</button>
+    <button class="filter-chip" data-filter="その他" onclick="setFilter(this)">その他</button>
+  </div>
+  <div id="product-list"></div>
+</div>
+
+<!-- 登録 -->
+<div class="page" id="page-add">
+  <div class="form-section">
+    <div class="form-section-title">基本情報</div>
+    <div class="form-card">
+      <div class="form-row-item">
+        <span class="form-row-label">商品名</span>
+        <input type="text" id="f-name" placeholder="必須">
+      </div>
+      <div class="form-row-item">
+        <span class="form-row-label">種別</span>
+        <select id="f-category">
+          <option value="">選択</option>
+          <option>化粧品</option>
+          <option>医薬部外品</option>
+        </select>
+      </div>
+      <div class="form-row-item">
+        <span class="form-row-label">ブランド</span>
+        <input type="text" id="f-brand" placeholder="例: COSME">
+      </div>
+      <div class="form-row-item">
+        <span class="form-row-label">会社名</span>
+        <input type="text" id="f-company" placeholder="例: 株式会社〇〇">
+      </div>
+      <div class="form-row-item">
+        <span class="form-row-label">分類</span>
+        <select id="f-type">
+          <option value="">選択</option>
+          <option>化粧水</option><option>美容液</option><option>クリーム</option>
+          <option>乳液</option><option>洗顔</option><option>日焼け止め</option>
+          <option>アイクリーム</option><option>パック/マスク</option><option>オイル</option><option>その他</option>
+        </select>
+      </div>
+      <div class="form-row-item">
+        <span class="form-row-label">容量</span>
+        <input type="text" id="f-volume" placeholder="例: 50ml">
+      </div>
+      <div class="form-row-item">
+        <span class="form-row-label">価格(税込)</span>
+        <input type="text" id="f-price" placeholder="例: 3,800円">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">商品写真</div>
+    <div class="form-card">
+      <div class="img-preview-row">
+        <img id="img-thumb" class="img-thumb" alt="プレビュー">
+        <div id="img-upload-btn-wrap" class="img-upload-btn" onclick="document.getElementById('f-img-file').click()">
+          <span>📷</span><small>タップして追加</small>
+        </div>
+        <div class="img-upload-actions">
+          <button class="img-action-btn" onclick="document.getElementById('f-img-file').click()">カメラロール / スクショから選ぶ</button>
+          <button class="img-action-btn" onclick="showUrlInput()">URLで指定する</button>
+          <button class="img-clear-btn" id="img-clear-btn" onclick="clearImg()">写真を削除</button>
+        </div>
+        <input type="file" id="f-img-file" accept="image/*" style="display:none" onchange="handleImgFile(event)">
+      </div>
+      <div id="url-input-row" class="form-row-item" style="display:none; border-top:0.5px solid var(--border);">
+        <span class="form-row-label">画像URL</span>
+        <input type="url" id="f-img-url" placeholder="https://..." oninput="previewImgUrl()">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">詳細情報</div>
+    <div class="form-card">
+      <div class="form-row-item form-textarea">
+        <span class="form-row-label">特徴</span>
+        <textarea id="f-feature" placeholder="例: 高保湿・低刺激。長時間うるおいをキープ"></textarea>
+      </div>
+      <div class="form-row-item form-textarea" style="border-top:0.5px solid var(--border);">
+        <span class="form-row-label" style="font-size:13px;">特徴成分</span>
+        <div style="width:100%;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;font-size:10px;color:var(--text3);">
+            <span>成分名</span><span>特徴・効果</span>
+          </div>
+          <div id="ingredient-rows">
+            <div class="ingr-row" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+              <input type="text" class="ingr-name" placeholder="例: ヒアルロン酸" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:13px;color:var(--text);text-align:left;">
+              <input type="text" class="ingr-desc" placeholder="例: 高保湿" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:13px;color:var(--text);text-align:left;">
+            </div>
+            <div class="ingr-row" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+              <input type="text" class="ingr-name" placeholder="例: セラミド" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:13px;color:var(--text);text-align:left;">
+              <input type="text" class="ingr-desc" placeholder="例: バリア機能" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:13px;color:var(--text);text-align:left;">
+            </div>
+            <div class="ingr-row" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <input type="text" class="ingr-name" placeholder="例: ナイアシンアミド" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:13px;color:var(--text);text-align:left;">
+              <input type="text" class="ingr-desc" placeholder="例: 美白・毛穴ケア" style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:6px 8px;font-size:13px;color:var(--text);text-align:left;">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-row-item" style="border-top:0.5px solid var(--border);">
+        <span class="form-row-label">質感</span>
+        <input type="text" id="f-texture" placeholder="例: とろみ、さらさら">
+      </div>
+      <div class="form-row-item" style="flex-direction:column;align-items:flex-start;gap:8px;border-top:0.5px solid var(--border);">
+        <span class="form-row-label">おすすめ肌質</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="skin-checks">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="乾燥肌" style="width:16px;height:16px;flex:none;background:none;border:none;text-align:left;">乾燥肌</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="敏感肌" style="width:16px;height:16px;flex:none;background:none;border:none;text-align:left;">敏感肌</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="混合肌" style="width:16px;height:16px;flex:none;background:none;border:none;text-align:left;">混合肌</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="脂性肌" style="width:16px;height:16px;flex:none;background:none;border:none;text-align:left;">脂性肌</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="普通肌" style="width:16px;height:16px;flex:none;background:none;border:none;text-align:left;">普通肌</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" value="全肌質" style="width:16px;height:16px;flex:none;background:none;border:none;text-align:left;">全肌質</label>
+        </div>
+      </div>
+      <div class="form-row-item" style="border-top:0.5px solid var(--border);">
+        <span class="form-row-label">NGポイント</span>
+        <input type="text" id="f-ng" placeholder="例: 香料入り・敏感肌注意">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">個人メモ・評価</div>
+    <div class="form-card">
+      <div class="form-row-item form-textarea">
+        <span class="form-row-label">メモ</span>
+        <textarea id="f-memo" placeholder="使用感など自由に" style="min-height:56px;"></textarea>
+      </div>
+      <div class="form-star-row">
+        <span class="lbl">評価</span>
+        <div id="star-row">
+          <button class="star-btn" onclick="setRating(1)">★</button>
+          <button class="star-btn" onclick="setRating(2)">★</button>
+          <button class="star-btn" onclick="setRating(3)">★</button>
+          <button class="star-btn" onclick="setRating(4)">★</button>
+          <button class="star-btn" onclick="setRating(5)">★</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="save-btn" onclick="saveProduct()" id="save-btn">登録する</button>
+  <button class="clear-btn" onclick="cancelEdit()">キャンセル</button>
+  <div style="height:8px;"></div>
+</div>
+
+<!-- 設定 -->
+<div class="page" id="page-settings">
+  <div class="setting-section">
+    <div class="form-section-title">スプレッドシート連携</div>
+    <div class="setting-card">
+      <div class="setting-row">
+        <div class="setting-label">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">未設定</span>
+        </div>
+        <div class="setting-desc">Apps ScriptのデプロイURLを入力するとGoogleスプレッドシートにデータが保存され、どのデバイスからでも同じデータを見られます。</div>
+        <input type="url" class="setting-input" id="api-url-input" placeholder="https://script.google.com/macros/s/..." value="">
+        <div style="display:flex;gap:8px;">
+          <button class="setting-btn" onclick="saveApiUrl()">保存して接続</button>
+          <button class="setting-btn secondary" onclick="testConnection()">接続テスト</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setting-section">
+    <div class="form-section-title">設定手順</div>
+    <div class="setting-card">
+      <div class="setting-row">
+        <div class="setting-label">① Googleスプレッドシートを用意</div>
+        <div class="setting-desc">Googleドライブで新しいスプレッドシートを作成します。名前は何でもOKです。</div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">② Apps Scriptを開く</div>
+        <div class="setting-desc">スプレッドシートのメニューから「拡張機能」→「Apps Script」を選択します。</div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">③ コードを貼り付け</div>
+        <div class="setting-desc">表示されたエディタのコードをすべて削除し、配布された「code.gs」の内容をコピーして貼り付けます。「保存」ボタンを押します。</div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">④ デプロイする</div>
+        <ol class="steps">
+          <li>右上の「デプロイ」→「新しいデプロイ」をクリック</li>
+          <li>種類の選択で「ウェブアプリ」を選択</li>
+          <li>「次のユーザーとして実行」→「自分」</li>
+          <li>「アクセスできるユーザー」→「全員」</li>
+          <li>「デプロイ」をクリック → Googleアカウントで認証</li>
+          <li>表示された「ウェブアプリURL」をコピー</li>
+        </ol>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">⑤ URLを上の入力欄に貼り付け</div>
+        <div class="setting-desc">コピーしたURLを上の入力欄に貼り付けて「保存して接続」を押せば完了です！</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-item active" id="tab-list" onclick="switchTab('list')">
+    <span class="tab-icon">📋</span>一覧
+  </button>
+  <button class="tab-item" id="tab-add" onclick="switchTab('add')">
+    <span class="tab-icon">✚</span>登録
+  </button>
+  <button class="tab-item" id="tab-settings" onclick="switchTab('settings')">
+    <span class="tab-icon">⚙️</span>設定
+  </button>
+</div>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-box">保存中...</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let products = [];
+let currentRating = 0;
+let editingId = null;
+let activeFilter = '';
+let currentImgData = '';
+let API_URL = localStorage.getItem('cosme_api_url') || '';
+
+// 起動時
+window.addEventListener('load', () => {
+  document.getElementById('api-url-input').value = API_URL;
+  updateStatusDot();
+  if (API_URL) {
+    loadProducts();
+  } else {
+    document.getElementById('header-sub').textContent = '設定タブでURLを設定してください';
+    renderList();
+  }
+});
+
+function updateStatusDot() {
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  if (API_URL) { dot.className = 'status-dot ok'; text.textContent = '接続済み'; }
+  else { dot.className = 'status-dot'; text.textContent = '未設定'; }
+}
+
+function saveApiUrl() {
+  const url = document.getElementById('api-url-input').value.trim();
+  if (!url) { showToast('URLを入力してください'); return; }
+  API_URL = url;
+  localStorage.setItem('cosme_api_url', url);
+  updateStatusDot();
+  showToast('保存しました！データを読み込みます');
+  loadProducts();
+}
+
+async function testConnection() {
+  const url = document.getElementById('api-url-input').value.trim();
+  if (!url) { showToast('URLを入力してください'); return; }
+  showLoading('接続テスト中...');
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    hideLoading();
+    if (data.ok !== undefined) { showToast('接続成功！'); }
+    else { showToast('接続できましたがエラーがあります'); }
+  } catch(e) {
+    hideLoading();
+    showToast('接続失敗。URLを確認してください');
+  }
+}
+
+async function loadProducts() {
+  if (!API_URL) return;
+  showLoading('読み込み中...');
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    hideLoading();
+    if (data.ok) {
+      products = data.products || [];
+      document.getElementById('header-sub').textContent = products.length + '件登録済み';
+      renderList();
+    } else {
+      showToast('読み込みエラー: ' + (data.error || ''));
+      document.getElementById('header-sub').textContent = 'エラー';
+    }
+  } catch(e) {
+    hideLoading();
+    showToast('通信エラー。URLや接続を確認してください');
+    document.getElementById('header-sub').textContent = 'オフライン';
+    renderList();
+  }
+}
+
+async function apiPost(body) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+  return await res.json();
+}
+
+function showLoading(msg) {
+  document.querySelector('.loading-box').textContent = msg || '処理中...';
+  document.getElementById('loading').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+
+function setRating(n) {
+  currentRating = n;
+  document.querySelectorAll('.star-btn').forEach((b,i) => b.classList.toggle('on', i < n));
+}
+
+function showUrlInput() {
+  const row = document.getElementById('url-input-row');
+  row.style.display = (row.style.display === 'none' || !row.style.display) ? 'flex' : 'none';
+}
+
+function handleImgFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { currentImgData = ev.target.result; setImgPreview(currentImgData); };
+  reader.readAsDataURL(file);
+}
+
+function previewImgUrl() {
+  const url = document.getElementById('f-img-url').value.trim();
+  if (url) { currentImgData = url; setImgPreview(url); }
+}
+
+function setImgPreview(src) {
+  const th = document.getElementById('img-thumb');
+  const wrap = document.getElementById('img-upload-btn-wrap');
+  th.src = src; th.classList.add('show');
+  wrap.style.display = 'none';
+  document.getElementById('img-clear-btn').classList.add('show');
+}
+
+function clearImg() {
+  currentImgData = '';
+  const th = document.getElementById('img-thumb');
+  th.src = ''; th.classList.remove('show');
+  document.getElementById('img-upload-btn-wrap').style.display = 'flex';
+  document.getElementById('img-clear-btn').classList.remove('show');
+  const u = document.getElementById('f-img-url'); if(u) u.value = '';
+  document.getElementById('f-img-file').value = '';
+}
+
+function setFilter(el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeFilter = el.dataset.filter;
+  renderList();
+}
+
+function renderList() {
+  const q = (document.getElementById('search-input').value || '').toLowerCase();
+  const list = products.filter(p => {
+    if (activeFilter && p.type !== activeFilter) return false;
+    if (q && !(p.name||'').toLowerCase().includes(q) && !(p.brand||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('count-badge').textContent = products.length + '件';
+  const el = document.getElementById('product-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">💄</div><div class="empty-text">${products.length===0?'まだ商品が登録されていません':'該当する商品がありません'}</div>${products.length===0?'<button class="btn-add-first" onclick="switchTab(\'add\')">最初の商品を登録する</button>':''}</div>`;
+    return;
+  }
+  const skinArr = p => Array.isArray(p.skin) ? p.skin : (p.skin ? p.skin.split('・') : []);
+  el.innerHTML = list.map(p => `
+    <div class="product-card">
+      <div class="card-main">
+        <div class="card-img">${p.img&&!p.img.startsWith('(') ? `<img src="${p.img}" onerror="this.parentElement.textContent='💄'">` : '💄'}</div>
+        <div class="card-info">
+          <div class="card-name">${p.name}</div>
+          <div class="card-brand">${[p.brand,p.company].filter(Boolean).join('　/　')}</div>
+          <div class="card-tags">
+            ${p.category?`<span class="tag tag-cat">${p.category}</span>`:''}
+            ${p.type?`<span class="tag tag-type">${p.type}</span>`:''}
+            ${skinArr(p).map(s=>`<span class="tag tag-skin">${s}</span>`).join('')}
+          </div>
+          <div class="price-vol">${[p.volume,p.price].filter(Boolean).join('　')}${p.rating?`<span class="stars">${'★'.repeat(p.rating)}</span>`:''}</div>
+        </div>
+      </div>
+      ${(p.feature||p.ingredient||p.texture||p.ng||p.memo)?`
+      <div class="card-detail">
+        ${p.feature?`<div class="detail-item full"><div class="detail-label">特徴</div><div class="detail-val">${p.feature}</div></div>`:''}
+        ${p.ingredient?`<div class="detail-item full"><div class="detail-label">特徴成分</div><div class="detail-val">${p.ingredient}</div></div>`:''}
+        ${p.texture?`<div class="detail-item"><div class="detail-label">質感</div><div class="detail-val">${p.texture}</div></div>`:''}
+        ${p.ng?`<div class="detail-item"><div class="detail-label">NGポイント</div><div class="detail-val ng">${p.ng}</div></div>`:''}
+        ${p.memo?`<div class="detail-item full"><div class="detail-label">メモ</div><div class="detail-val" style="color:var(--text2)">${p.memo}</div></div>`:''}
+      </div>`:''}
+      <div class="card-footer">
+        <button class="card-btn" onclick="editProduct('${p.id}')">編集</button>
+        <button class="card-btn danger" onclick="confirmDelete('${p.id}')">削除</button>
+      </div>
+    </div>`).join('');
+}
+
+async function confirmDelete(id) {
+  if (!confirm('この商品を削除しますか？')) return;
+  if (!API_URL) { showToast('URLが設定されていません'); return; }
+  showLoading('削除中...');
+  try {
+    const data = await apiPost({action:'delete', id});
+    hideLoading();
+    if (data.ok) { products = products.filter(p => String(p.id) !== String(id)); renderList(); showToast('削除しました'); }
+    else showToast('削除エラー: ' + (data.error||''));
+  } catch(e) { hideLoading(); showToast('通信エラー'); }
+}
+
+function editProduct(id) {
+  const p = products.find(x => String(x.id) === String(id));
+  if (!p) return;
+  editingId = id;
+  document.getElementById('f-name').value = p.name || '';
+  document.getElementById('f-category').value = p.category || '';
+  document.getElementById('f-brand').value = p.brand || '';
+  document.getElementById('f-company').value = p.company || '';
+  document.getElementById('f-type').value = p.type || '';
+  document.getElementById('f-volume').value = p.volume || '';
+  document.getElementById('f-price').value = p.price || '';
+  document.getElementById('f-feature').value = p.feature || '';
+  document.getElementById('f-texture').value = p.texture || '';
+  document.getElementById('f-ng').value = p.ng || '';
+  document.getElementById('f-memo').value = p.memo || '';
+  const skinArr = Array.isArray(p.skin) ? p.skin : (p.skin ? p.skin.split('・') : []);
+  document.querySelectorAll('#skin-checks input').forEach(cb => cb.checked = skinArr.includes(cb.value));
+  document.querySelectorAll('.ingr-row').forEach((r,i) => {
+    r.querySelector('.ingr-name').value = '';
+    r.querySelector('.ingr-desc').value = '';
+  });
+  if (p.ingredients && p.ingredients.length) {
+    p.ingredients.forEach((ing, i) => {
+      const rows = document.querySelectorAll('.ingr-row');
+      if (rows[i]) { rows[i].querySelector('.ingr-name').value = ing.name||''; rows[i].querySelector('.ingr-desc').value = ing.desc||''; }
+    });
+  }
+  setRating(p.rating || 0);
+  currentImgData = (p.img && !p.img.startsWith('(')) ? p.img : '';
+  if (currentImgData) setImgPreview(currentImgData); else clearImg();
+  document.getElementById('f-img-url').value = currentImgData && !currentImgData.startsWith('data:') ? currentImgData : '';
+  document.getElementById('save-btn').textContent = '更新する';
+  switchTab('add');
+}
+
+function cancelEdit() { clearForm(); switchTab('list'); }
+
+function clearForm() {
+  ['f-name','f-category','f-brand','f-company','f-type','f-volume','f-price','f-feature','f-texture','f-ng','f-memo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.querySelectorAll('#skin-checks input').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.ingr-row').forEach(r => { r.querySelector('.ingr-name').value=''; r.querySelector('.ingr-desc').value=''; });
+  setRating(0); clearImg(); editingId = null;
+  document.getElementById('save-btn').textContent = '登録する';
+}
+
+async function saveProduct() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('商品名を入力してください'); return; }
+  if (!API_URL) { showToast('設定タブでURLを設定してください'); return; }
+  const ingredients = Array.from(document.querySelectorAll('.ingr-row')).map(r => ({
+    name: r.querySelector('.ingr-name').value.trim(),
+    desc: r.querySelector('.ingr-desc').value.trim()
+  })).filter(i => i.name);
+  const p = {
+    id: editingId || Date.now(),
+    name,
+    category: document.getElementById('f-category').value,
+    brand: document.getElementById('f-brand').value.trim(),
+    company: document.getElementById('f-company').value.trim(),
+    type: document.getElementById('f-type').value,
+    volume: document.getElementById('f-volume').value.trim(),
+    price: document.getElementById('f-price').value.trim(),
+    feature: document.getElementById('f-feature').value.trim(),
+    ingredients,
+    ingredient: ingredients.map(i => i.desc ? i.name+'('+i.desc+')' : i.name).join('、'),
+    texture: document.getElementById('f-texture').value.trim(),
+    skin: Array.from(document.querySelectorAll('#skin-checks input:checked')).map(c => c.value),
+    ng: document.getElementById('f-ng').value.trim(),
+    memo: document.getElementById('f-memo').value.trim(),
+    rating: currentRating,
+    img: currentImgData
+  };
+  showLoading(editingId ? '更新中...' : '登録中...');
+  try {
+    const data = await apiPost({action:'save', product:p});
+    hideLoading();
+    if (data.ok) {
+      if (editingId) { products = products.map(x => String(x.id)===String(editingId) ? p : x); showToast('更新しました！'); }
+      else { products.push(p); showToast('登録しました！'); }
+      clearForm(); switchTab('list');
+    } else showToast('保存エラー: ' + (data.error||''));
+  } catch(e) { hideLoading(); showToast('通信エラー。接続を確認してください'); }
+}
+
+function switchTab(name) {
+  ['list','add','settings'].forEach(n => {
+    document.getElementById('page-'+n).classList.toggle('active', n===name);
+    document.getElementById('tab-'+n).classList.toggle('active', n===name);
+  });
+  if (name==='list') { if(API_URL) loadProducts(); else renderList(); }
+  if (name==='add' && !editingId) clearForm();
+  window.scrollTo(0,0);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
